@@ -1,66 +1,64 @@
 import streamlit as st
-from pytubefix import YouTube
 import os
 import glob
 
-st.set_page_config(page_title="YouTube to TikTok Clipper", page_icon="🎬")
+st.set_page_config(page_title="TikTok Video Clipper", page_icon="🎬", layout="centered")
 
-st.title("🎬 TikTok Clipper")
-st.write("Entre un lien YouTube pour générer automatiquement un clip TikTok !")
+st.title("🎬 TikTok Video Clipper")
+st.write("Importe ton fichier vidéo (MP4/MOV) pour le découper instantanément au format TikTok !")
 
-url_input = st.text_input("URL YouTube :")
-duration = st.slider("Durée du clip (secondes) :", min_value=10, max_value=180, value=60)
+# 1. Zone d'importation de fichier vidéo
+uploaded_file = st.file_uploader("Choisissez un fichier vidéo", type=["mp4", "mov", "avi", "mkv"])
 
-if st.button("🚀 Générer le clip"):
-    if not url_input:
-        st.error("Veuillez entrer une URL valide.")
-    else:
+if uploaded_file is not None:
+    st.video(uploaded_file)
+    
+    st.subheader("⚙️ Paramètres du clip")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        start_time = st.number_input("Temps de début (en secondes) :", min_value=0, value=0, step=1)
+    with col2:
+        duration = st.number_input("Durée du clip (en secondes) :", min_value=1, max_value=300, value=60, step=1)
+
+    if st.button("🚀 Générer le clip"):
         status = st.empty()
-        status.info("⏳ Traitement en cours...")
+        status.info("⏳ Nettoyage des anciens fichiers...")
         
-        # Nettoyage des anciens fichiers
-        for f in glob.glob("downloaded_video.*") + glob.glob("output_clip.*"):
+        # Nettoyage des fichiers temporaires
+        for f in glob.glob("input_video.*") + glob.glob("output_clip.*"):
             try:
                 os.remove(f)
             except Exception:
                 pass
 
-        try:
-            status.info("📥 Connexion à YouTube via PyTubeFix...")
+        # Sauvegarde du fichier importé
+        file_extension = os.path.splitext(uploaded_file.name)[1]
+        input_filename = f"input_video{file_extension}"
+        output_filename = "output_clip.mp4"
+        
+        with open(input_filename, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        status.info("✂️ Découpage de la vidéo avec FFmpeg...")
+
+        # Commande FFmpeg pour découper la vidéo sans réencodage rapide
+        cmd = f'ffmpeg -y -ss {start_time} -i "{input_filename}" -t {duration} -c copy "{output_filename}"'
+        exit_code = os.system(cmd)
+
+        if exit_code == 0 and os.path.exists(output_filename) and os.path.getsize(output_filename) > 0:
+            status.success("🎉 Clip généré avec succès !")
             
-            # Essai avec le client ANDROID_VR qui passe outre la connexion obligatoire
-            try:
-                yt = YouTube(url_input, client='ANDROID_VR')
-                stream = yt.streams.filter(file_extension='mp4').first()
-            except Exception:
-                # Client de secours MWEB
-                yt = YouTube(url_input, client='MWEB')
-                stream = yt.streams.filter(file_extension='mp4').first()
-
-            status.info("📥 Téléchargement de la vidéo...")
-            downloaded_file = stream.download(filename="downloaded_video.mp4")
-
-            if os.path.exists(downloaded_file) and os.path.getsize(downloaded_file) > 0:
-                status.info("✂️ Découpage du clip avec ffmpeg...")
-                output_file = "output_clip.mp4"
-                
-                cmd = f'ffmpeg -y -i "{downloaded_file}" -ss 00:00:00 -t {duration} -c copy "{output_file}"'
-                os.system(cmd)
-
-                if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-                    status.success("🎉 Clip généré avec succès !")
-                    st.video(output_file)
-                    with open(output_file, "rb") as file:
-                        st.download_button(
-                            label="⬇️ Télécharger le clip MP4",
-                            data=file,
-                            file_name="tiktok_clip.mp4",
-                            mime="video/mp4"
-                        )
-                else:
-                    st.error("Erreur lors du découpage vidéo.")
-            else:
-                st.error("Le fichier téléchargé est vide.")
-
-        except Exception as e:
-            st.error(f"Erreur lors de la récupération : {e}")
+            # Affichage du résultat
+            st.video(output_filename)
+            
+            # Bouton de téléchargement
+            with open(output_filename, "rb") as file:
+                st.download_button(
+                    label="⬇️ Télécharger le clip MP4",
+                    data=file,
+                    file_name="tiktok_clip.mp4",
+                    mime="video/mp4"
+                )
+        else:
+            status.error("❌ Erreur lors du découpage de la vidéo avec FFmpeg. Vérifie le format de ton fichier.")
