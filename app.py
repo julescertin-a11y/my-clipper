@@ -28,11 +28,13 @@ if st.button("🚀 Générer le clip"):
         try:
             status.info("📥 Connexion à YouTube via PyTubeFix...")
             
-            # Utilisation du client WEB_CREATOR qui passe les protections bot de YouTube
-            yt = YouTube(url_input, client='WEB_CREATOR')
-            stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
-            
-            if not stream:
+            # Essai avec le client ANDROID_VR qui passe outre la connexion obligatoire
+            try:
+                yt = YouTube(url_input, client='ANDROID_VR')
+                stream = yt.streams.filter(file_extension='mp4').first()
+            except Exception:
+                # Client de secours MWEB
+                yt = YouTube(url_input, client='MWEB')
                 stream = yt.streams.filter(file_extension='mp4').first()
 
             status.info("📥 Téléchargement de la vidéo...")
