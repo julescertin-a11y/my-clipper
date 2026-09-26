@@ -1,2 +1,2 @@
 streamlit
-yt-dlp>=2024.08.06
+requests
