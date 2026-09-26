@@ -5,7 +5,7 @@ import glob
 
 st.set_page_config(page_title="YouTube to TikTok Clipper", page_icon="🎬")
 
-st.title("🎬 YouTube to TikTok Clipper")
+st.title("🎬 TikTok Clipper")
 st.write("Entre un lien YouTube pour générer automatiquement un clip TikTok !")
 
 url = st.text_input("URL YouTube :")
@@ -26,16 +26,21 @@ if st.button("🚀 Générer le clip"):
                 pass
 
         ydl_opts = {
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'format': 'b/m4a/mp4',
             'outtmpl': 'downloaded_video.%(ext)s',
             'overwrites': True,
             'quiet': True,
             'no_warnings': True,
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'check_formats': False,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android', 'web']
+                    'player_client': ['ios', 'android'],
+                    'player_skip': ['webpage', 'configs']
                 }
+            },
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1',
+                'Accept-Language': 'en-US,en;q=0.9',
             }
         }
 
@@ -52,7 +57,7 @@ if st.button("🚀 Générer le clip"):
                 status.info("✂️ Découpage du clip avec ffmpeg...")
                 output_file = "output_clip.mp4"
                 
-                # Commande FFmpeg pour découper les premières secondes
+                # Commande FFmpeg pour découper
                 cmd = f'ffmpeg -y -i "{downloaded_file}" -ss 00:00:00 -t {duration} -c copy "{output_file}"'
                 os.system(cmd)
 
