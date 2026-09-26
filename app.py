@@ -18,6 +18,14 @@ def extract_video_id(url):
         return url.split("watch?v=")[1].split("&")[0]
     return None
 
+# Liste de secours des instances Invidious les plus rapides et stables
+INVIDIOUS_INSTANCES = [
+    "https://invidious.nerdvpn.de",
+    "https://invidious.flokinet.to",
+    "https://inv.tux.pizza",
+    "https://invidious.drgns.space"
+]
+
 if st.button("🚀 Générer le clip"):
     video_id = extract_video_id(url_input)
     
@@ -34,23 +42,28 @@ if st.button("🚀 Générer le clip"):
             except Exception:
                 pass
 
-        try:
-            status.info("📥 Récupération du flux vidéo...")
-            
-            # API Invidious publique (contourne le blocage IP)
-            invidious_api = f"https://inv.tux.pizza/api/v1/videos/{video_id}"
-            response = requests.get(invidious_api, timeout=15).json()
-            
-            video_url = None
-            if "formatStreams" in response and len(response["formatStreams"]) > 0:
-                # Prend la meilleure qualité disponible
-                video_url = response["formatStreams"][-1]["url"]
+        video_url = None
+        status.info("📥 Recherche d'un serveur relais disponible...")
+        
+        # Boucle sur les instances pour trouver la première qui répond vite
+        for instance in INVIDIOUS_INSTANCES:
+            try:
+                api_endpoint = f"{instance}/api/v1/videos/{video_id}"
+                res = requests.get(api_endpoint, timeout=5)
+                if res.status_code == 200:
+                    data = res.json()
+                    if "formatStreams" in data and len(data["formatStreams"]) > 0:
+                        video_url = data["formatStreams"][-1]["url"]
+                        break
+            except Exception:
+                continue
 
-            if not video_url:
-                st.error("Impossible de récupérer la vidéo depuis le serveur proxy.")
-            else:
-                status.info("📥 Téléchargement de la vidéo...")
-                r = requests.get(video_url, stream=True)
+        if not video_url:
+            st.error("Les serveurs relais sont temporairement occupés. Réessaie dans quelques secondes.")
+        else:
+            try:
+                status.info("📥 Téléchargement du flux vidéo...")
+                r = requests.get(video_url, stream=True, timeout=30)
                 downloaded_file = "downloaded_video.mp4"
                 
                 with open(downloaded_file, "wb") as f:
@@ -80,5 +93,5 @@ if st.button("🚀 Générer le clip"):
                 else:
                     st.error("Erreur : Fichier téléchargé vide.")
 
-        except Exception as e:
-            st.error(f"Erreur de connexion au serveur : {e}")
+            except Exception as e:
+                st.error(f"Erreur lors du téléchargement : {e}")
