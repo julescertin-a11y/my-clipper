@@ -1,6 +1,2 @@
 streamlit
-yt-dlp
-openai-whisper
-moviepy==1.0.3
-torch
-imageio-ffmpeg
+yt-dlp>=2024.08.06
