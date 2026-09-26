@@ -3,8 +3,9 @@ import re
 import streamlit as st
 import yt_dlp
 import whisper
-from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
-
+from moviepy.video.io.VideoFileClip import VideoFileClip
+from moviepy.video.VideoClip import TextClip
+from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 st.set_page_config(page_title="YouTube to TikTok", page_icon="🎬")
 
 st.title("🎬 YouTube to TikTok Clipper")
